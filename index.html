@@ -283,10 +283,146 @@
         #clearBtn:hover:not(:disabled) {
             background: #b91c1c;
         }
+
+        /* Hamburger menu button - hidden on desktop */
+        #hamburger-btn {
+            display: none;
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            z-index: 1100;
+            background: var(--chat-bg);
+            border: 1px solid var(--border);
+            color: var(--text-color);
+            font-size: 1.4rem;
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border-radius: 8px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        #hamburger-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* Sidebar overlay backdrop - mobile only */
+        #sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        #sidebar-overlay.active {
+            display: block;
+        }
+
+        /* ===== Mobile styles (max-width: 768px) ===== */
+        @media (max-width: 768px) {
+            #hamburger-btn {
+                display: flex;
+            }
+
+            #sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                width: 280px;
+                z-index: 1000;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease, background 0.3s, border-color 0.3s;
+                box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+            }
+            #sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            #main-content {
+                padding: 60px 12px 12px 12px;
+            }
+
+            h1 { font-size: 1.4rem; }
+
+            #chatbox {
+                padding: 14px;
+                border-radius: 8px;
+                margin-bottom: 12px;
+            }
+
+            .input-area {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            textarea {
+                width: 100%;
+                flex: 1 1 100%;
+                min-width: 0;
+                height: 50px;
+                font-size: 16px; /* prevents iOS zoom on focus */
+            }
+
+            .input-area button {
+                height: 44px;
+                font-size: 0.85rem;
+                padding: 0 14px;
+            }
+
+            #clearBtn {
+                padding: 0 14px;
+            }
+
+            #mic-btn, #upload-btn {
+                padding: 0 12px;
+            }
+
+            #status-container, #disclaimer {
+                font-size: 0.8rem;
+                padding: 10px 12px;
+            }
+
+            .msg {
+                font-size: 0.92rem;
+                margin-bottom: 16px;
+            }
+
+            #settings-content {
+                padding: 18px;
+                max-width: 90vw;
+            }
+        }
+
+        /* ===== Small phone styles (max-width: 400px) ===== */
+        @media (max-width: 400px) {
+            #main-content {
+                padding: 56px 8px 8px 8px;
+            }
+
+            .input-area {
+                gap: 6px;
+            }
+
+            .input-area button {
+                height: 40px;
+                padding: 0 10px;
+                font-size: 0.8rem;
+            }
+
+            textarea {
+                height: 44px;
+                padding: 10px 12px;
+            }
+        }
     </style>
 </head>
 <body>
 
+    <button id="hamburger-btn" onclick="toggleMobileSidebar()" aria-label="Toggle menu">☰</button>
+    <div id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
     <div id="sidebar">
         <h2>🐢 Kurma Gen AI</h2>
         <h3 style="font-size: 0.9rem; color: #6b7280; margin-bottom: 16px; font-weight: 500;">Search History</h3>
@@ -506,6 +642,14 @@
         window.toggleSidebar = function(value) {
             userPreferences.showSidebar = value === 'show';
             applyPreferences();
+        }
+
+        // Mobile sidebar toggle
+        window.toggleMobileSidebar = function() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('mobile-open');
+            overlay.classList.toggle('active');
         }
 
         window.saveSettings = function() {
