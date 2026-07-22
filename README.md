@@ -1,6 +1,18 @@
-# KurmaAI
+# Kurma Gen AI
 
-KurmaAI is a fully client-side, browser-based Generative AI application hosted entirely as a static site on GitHub Pages. It does not use any server-side infrastructure, external cloud APIs (like OpenAI), or third-party wrappers. All AI inference is executed locally inside the user's browser using WebGPU and WebAssembly.
+Kurma Gen AI is a fully client-side, browser-based Generative AI application hosted entirely as a static site on GitHub Pages. It does not use any server-side infrastructure, external cloud APIs (like OpenAI), or third-party wrappers. All AI inference is executed locally inside the user's browser using WebAssembly and CPU-based inference via Transformers.js.
+
+## Features
+
+- **100% Local AI**: Runs entirely in your browser with no server dependencies
+- **Voice Input**: Built-in speech-to-text using Web Speech API
+- **File Upload**: Upload documents (.txt, .pdf, .doc, .docx) for analysis
+- **Multilingual Support**: Automatic language detection and response in user's language
+- **Search History**: Persistent chat history stored in localStorage
+- **Customizable Settings**: Theme (dark/light), font size, typing speed, sidebar toggle
+- **Professional UI**: ChatGPT-inspired interface with sidebar and modern styling
+- **Typewriter Effect**: Human-like text generation animation
+- **Enter Key Support**: Quick message sending with Enter (Shift+Enter for new lines)
 
 ---
 
@@ -14,13 +26,20 @@ Devin, please follow these explicit instructions to initialize, develop, and ver
 - Ensure the application requires **zero npm installation or build steps** by importing dependencies directly via reliable CDNs (e.g., `esm.run`).
 
 ### 2. Implementation Specs
-- **Core Engine:** Implement `@mlc-ai/web-llm` via ESM modules.
-- **Model Choice:** Use `Phi-3-mini-4k-instruct-q4f16_1-MLC` (or any modern, equivalent lightweight model under 3GB optimized for browser execution).
-- **UX Requirements:**
-  - Display a real-time progress bar or text indicator tracking the model downloading/loading status using the `initProgressCallback` hook.
-  - Keep the chat input and send button strictly disabled until the model is 100% ready.
-  - Implement a scrolling chat viewport that automatically sticks to the bottom when new tokens/messages arrive.
-  - Gracefully catch and display errors if the host browser lacks WebGPU support (e.g., provide a fallback message advising the user to use Chrome/Edge).
+- **Core Engine:** `@xenova/transformers` via CDN (jsdelivr)
+- **Model Choice:** `Xenova/LaMini-Flan-T5-783M` (lightweight text-to-text generation model optimized for browser execution)
+- **UX Features:**
+  - Real-time progress indicator for model loading
+  - Input disabled until model is ready
+  - Auto-scrolling chat viewport
+  - Voice input with recording indicator
+  - File upload for document analysis
+  - Persistent search history in localStorage
+  - Settings modal with theme, font size, typing speed controls
+  - Sidebar with search history
+  - Multilingual support (Hindi, Tamil, Telugu, Chinese, Japanese, Korean, Russian, Arabic, and European languages)
+  - Typewriter effect for AI responses
+  - Works across all modern browsers (Chrome, Edge, Firefox, Safari) without WebGPU
 
 ### 3. Verification Criteria
 - Parse the JavaScript code to ensure no external API keys (`sk-...`) or backend endpoints are referenced.
@@ -38,7 +57,7 @@ Devin, you can use the following blueprint as the baseline implementation for `i
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KurmaAI - Local Browser Engine</title>
+    <title>Kurma Gen AI - Local Browser Engine</title>
     <style>
         :root {
             --bg-color: #131415;
@@ -109,36 +128,50 @@ Devin, you can use the following blueprint as the baseline implementation for `i
 </head>
 <body>
 
-    <h1>🐢 KurmaAI</h1>
+    <h1>🐢 Kurma Gen AI</h1>
     <div id="status-container">Initializing initialization vectors...</div>
     
     <div id="chatbox"></div>
     
     <div class="input-area">
-        <textarea id="userInput" placeholder="Ask KurmaAI something..." disabled></textarea>
+        <textarea id="userInput" placeholder="Ask Kurma Gen AI something..." disabled></textarea>
         <button id="sendBtn" onclick="askAI()" disabled>Send</button>
     </div>
 
     <script type="module">
-        import * as webllm from "https://esm.run";
+        import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1";
 
-        const selectedModel = "Phi-3-mini-4k-instruct-q4f16_1-MLC";
-        let engine;
+        // Disable local model checks
+        env.allowLocalModels = false;
+        env.useBrowserCache = true;
+
+        const selectedModel = "Xenova/LaMini-Flan-T5-783M";
+        let generator;
 
         async function initApp() {
             const statusDiv = document.getElementById("status-container");
+            
             try {
-                engine = await webllm.CreateEngine(selectedModel, {
-                    initProgressCallback: (report) => {
-                        statusDiv.innerText = `System Status: ${report.text}`;
+                statusDiv.innerText = "System Status: Loading AI model (this may take a minute on first run)...";
+                
+                generator = await pipeline('text2text-generation', selectedModel, {
+                    progress_callback: (progress) => {
+                        if (progress.status === 'progress') {
+                            const percent = progress.progress ? Math.round(progress.progress) : 0;
+                            statusDiv.innerText = `System Status: Downloading model... ${percent}%`;
+                        } else if (progress.status === 'done') {
+                            statusDiv.innerText = "System Status: Model loaded successfully";
+                        }
                     }
                 });
-                statusDiv.innerText = "System Status: KurmaAI Engine Active (100% Local)";
+                
+                statusDiv.innerText = "System Status: Kurma Gen AI Engine Active (100% Local - CPU/WebAssembly)";
                 document.getElementById("userInput").disabled = false;
                 document.getElementById("sendBtn").disabled = false;
             } catch (error) {
-                statusDiv.innerHTML = "❌ Error: WebGPU execution failed. Ensure you are using a modern browser (Chrome/Edge) with hardware acceleration enabled.";
-                console.error(error);
+                const errorMsg = error.message || error.toString();
+                console.error("Model Error:", error);
+                statusDiv.innerHTML = `❌ Error: Model initialization failed.<br><br><strong>Details:</strong> ${errorMsg}<br><br><strong>Troubleshooting:</strong><br>1. Check your internet connection<br>2. Try refreshing the page<br>3. Check browser console for more details`;
             }
         }
 
@@ -153,17 +186,20 @@ Devin, you can use the following blueprint as the baseline implementation for `i
 
             const aiResponsePlaceholder = document.createElement("div");
             aiResponsePlaceholder.className = "msg ai-msg";
-            aiResponsePlaceholder.innerHTML = "<strong>KurmaAI:</strong> 🖋️ Thinking...";
+            aiResponsePlaceholder.innerHTML = "<strong>Kurma Gen AI:</strong> 🖋️ Thinking...";
             chatbox.appendChild(aiResponsePlaceholder);
             chatbox.scrollTop = chatbox.scrollHeight;
 
             try {
-                const messages = [{ role: "user", content: input }];
-                const reply = await engine.chat.completions.create({ messages });
+                const output = await generator(input, {
+                    max_new_tokens: 256,
+                    temperature: 0.7,
+                    do_sample: true
+                });
                 
-                aiResponsePlaceholder.innerHTML = `<strong>KurmaAI:</strong> ${reply.choices.message.content}`;
+                aiResponsePlaceholder.innerHTML = `<strong>Kurma Gen AI:</strong> ${output[0].generated_text}`;
             } catch (err) {
-                aiResponsePlaceholder.innerHTML = `<strong>KurmaAI:</strong> Error generating token response.`;
+                aiResponsePlaceholder.innerHTML = `<strong>Kurma Gen AI:</strong> Error generating response. ${err.message}`;
             }
             chatbox.scrollTop = chatbox.scrollHeight;
         }

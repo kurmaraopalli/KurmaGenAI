@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KurmaAI - Local Browser Engine</title>
+    <style>
+        :root {
+            --bg-color: #131415;
+            --chat-bg: #1e1f22;
+            --text-color: #e3e6e8;
+            --primary: #3578e5;
+            --border: #2b2d31;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #sidebar {
+            width: 280px;
+            background: var(--chat-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            transition: background 0.3s, border-color 0.3s;
+        }
+        #sidebar h2 {
+            font-size: 1.2rem;
+            margin-bottom: 16px;
+            color: var(--text-color);
+            font-weight: 600;
+        }
+        #history-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .history-item {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-color);
+            transition: background 0.2s, transform 0.1s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(2px);
+        }
+        .history-item.empty {
+            color: #6b7280;
+            font-style: italic;
+            cursor: default;
+        }
+        .history-item.empty:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        #settings-btn {
+            margin-top: 16px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            transition: background 0.2s, border-color 0.3s, color 0.3s;
+        }
+        #settings-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        #settings-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        #settings-modal.active {
+            display: flex;
+        }
+        #settings-content {
+            background: #1e1f22;
+            border: 1px solid #2b2d31;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        #settings-content h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        .setting-item {
+            margin-bottom: 20px;
+        }
+        .setting-item label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        .setting-item select,
+        .setting-item input[type="range"] {
+            width: 100%;
+            padding: 8px 12px;
+            background: #2b2d31;
+            border: 1px solid #2b2d31;
+            border-radius: 6px;
+            color: #e3e6e8;
+            font-size: 0.95rem;
+        }
+        .setting-item select option {
+            background: #2b2d31;
+            color: #e3e6e8;
+        }
+        .setting-item select:focus,
+        .setting-item input:focus {
+            outline: none;
+            border-color: #3578e5;
+        }
+        .setting-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+        .setting-buttons button {
+            flex: 1;
+        }
+        #close-settings {
+            background: #2b2d31;
+        }
+        #close-settings:hover:not(:disabled) {
+            background: #3b3d41;
+        }
+        .input-area {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        #mic-btn {
+            background: #2b2d31;
+            border: 1px solid #2b2d31;
+            padding: 0 16px;
+        }
+        #mic-btn:hover:not(:disabled) {
+            background: #3b3d41;
+        }
+        #mic-btn.recording {
+            background: #da3633;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        #upload-btn {
+            background: #2b2d31;
+            border: 1px solid #2b2d31;
+            padding: 0 16px;
+        }
+        #upload-btn:hover:not(:disabled) {
+            background: #3b3d41;
+        }
+        #file-input {
+            display: none;
+        }
+        #main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        @media (min-width: 1400px) {
+            #main-content {
+                max-width: 1400px;
+            }
+        }
+        h1 { font-size: 2rem; margin-bottom: 20px; text-align: center; font-weight: 600; display: none; }
+        #status-container {
+            background: var(--chat-bg);
+            border: 1px solid var(--border);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            color: #b5bac1;
+            transition: background 0.3s, border-color 0.3s, color 0.3s;
+        }
+        #disclaimer {
+            background: rgba(218, 54, 51, 0.1);
+            border: 1px solid rgba(218, 54, 51, 0.3);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+            color: #ff9494;
+            line-height: 1.4;
+            transition: background 0.3s, border-color 0.3s;
+        }
+        #chatbox {
+            flex: 1;
+            background: var(--chat-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            transition: background 0.3s, border-color 0.3s;
+        }
+        .msg { margin-bottom: 24px; line-height: 1.6; }
+        .user-msg { color: #58a6ff; }
+        .ai-msg { color: #8b949e; }
+        .msg strong { font-weight: 600; }
+        .input-area { display: flex; gap: 12px; align-items: center; }
+        textarea {
+            flex: 1;
+            background: #2b2d31;
+            border: 1px solid #2b2d31;
+            color: #e3e6e8;
+            padding: 14px 16px;
+            border-radius: 8px;
+            resize: none;
+            height: 60px;
+            font-size: 1rem;
+            line-height: 1.4;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.3s, color 0.3s;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #3578e5;
+            box-shadow: 0 0 0 3px rgba(53, 120, 229, 0.1);
+        }
+        button {
+            background: #3578e5;
+            color: white;
+            border: none;
+            padding: 0 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            height: 60px;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button:hover:not(:disabled) {
+            background: #2563eb;
+        }
+        button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+        button:disabled, textarea:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #clearBtn {
+            background: #da3633;
+            padding: 0 20px;
+        }
+        #clearBtn:hover:not(:disabled) {
+            background: #b91c1c;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2>🐢 Kurma Gen AI</h2>
+        <h3 style="font-size: 0.9rem; color: #6b7280; margin-bottom: 16px; font-weight: 500;">Search History</h3>
+        <div id="history-list">
+            <div class="history-item empty">No search history yet</div>
+        </div>
+        <button id="settings-btn" onclick="toggleSettings()">⚙️ Settings</button>
+    </div>
+
+    <div id="main-content">
+        <h1>🐢 Kurma Gen AI</h1>
+        <div id="status-container">Initializing initialization vectors...</div>
+        <div id="disclaimer">⚠️ <strong>Note:</strong> This AI runs locally in your browser with no internet access. It cannot provide real-time information like stock prices, current news, or live data. It's designed for general conversations and text generation based on its training data.</div>
+        
+        <div id="chatbox"></div>
+        
+        <div class="input-area">
+            <button id="clearBtn" onclick="clearHistory()">Clear</button>
+            <button id="mic-btn" onclick="toggleRecording()" disabled>🎤</button>
+            <button id="upload-btn" onclick="document.getElementById('file-input').click()" disabled>📎</button>
+            <input type="file" id="file-input" accept=".txt,.pdf,.doc,.docx" onchange="handleFileUpload(event)">
+            <textarea id="userInput" placeholder="Ask Kurma Gen AI something..." disabled></textarea>
+            <button id="sendBtn" onclick="askAI()" disabled>Send</button>
+        </div>
+    </div>
+
+    <div id="settings-modal">
+        <div id="settings-content">
+            <h2>⚙️ Settings</h2>
+            
+            <div class="setting-item">
+                <label for="theme-select">Theme</label>
+                <select id="theme-select" onchange="changeTheme(this.value)">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                </select>
+            </div>
+            
+            <div class="setting-item">
+                <label for="font-size-range">Font Size: <span id="font-size-value">16px</span></label>
+                <input type="range" id="font-size-range" min="12" max="24" value="16" onchange="changeFontSize(this.value)">
+            </div>
+            
+            <div class="setting-item">
+                <label for="typing-speed-range">Typing Speed: <span id="typing-speed-value">15ms</span></label>
+                <input type="range" id="typing-speed-range" min="5" max="50" value="15" onchange="changeTypingSpeed(this.value)">
+            </div>
+            
+            <div class="setting-item">
+                <label for="sidebar-toggle">Show Sidebar</label>
+                <select id="sidebar-toggle" onchange="toggleSidebar(this.value)">
+                    <option value="show">Yes</option>
+                    <option value="hide">No</option>
+                </select>
+            </div>
+            
+            <div class="setting-buttons">
+                <button id="close-settings" onclick="toggleSettings()">Close</button>
+                <button onclick="saveSettings()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1";
+
+        // Disable local model checks
+        env.allowLocalModels = false;
+        env.useBrowserCache = true;
+
+        const selectedModel = "Xenova/LaMini-Flan-T5-783M";
+        let generator;
+        let searchHistory = [];
+        let typingSpeed = 15;
+        let userPreferences = {
+            theme: 'dark',
+            fontSize: 16,
+            typingSpeed: 15,
+            showSidebar: true
+        };
+        let isRecording = false;
+        let recognition = null;
+        let uploadedFileContent = '';
+
+        // Load search history from localStorage
+        function loadSearchHistory() {
+            const saved = localStorage.getItem('kurmaai_search_history');
+            if (saved) {
+                searchHistory = JSON.parse(saved);
+                updateHistoryUI();
+            }
+        }
+
+        // Save search history to localStorage
+        function saveSearchHistory() {
+            localStorage.setItem('kurmaai_search_history', JSON.stringify(searchHistory));
+        }
+
+        // Update history UI
+        function updateHistoryUI() {
+            const historyList = document.getElementById('history-list');
+            if (searchHistory.length === 0) {
+                historyList.innerHTML = '<div class="history-item empty">No search history yet</div>';
+            } else {
+                historyList.innerHTML = '';
+                searchHistory.slice().reverse().forEach((query, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    item.textContent = query;
+                    item.onclick = () => {
+                        document.getElementById('userInput').value = query;
+                        document.getElementById('userInput').focus();
+                    };
+                    historyList.appendChild(item);
+                });
+            }
+        }
+
+        // Add query to history
+        function addToHistory(query) {
+            if (!searchHistory.includes(query)) {
+                searchHistory.push(query);
+                saveSearchHistory();
+                updateHistoryUI();
+            }
+        }
+
+        // Load user preferences
+        function loadPreferences() {
+            const saved = localStorage.getItem('kurmaai_preferences');
+            if (saved) {
+                userPreferences = JSON.parse(saved);
+                applyPreferences();
+            }
+        }
+
+        // Save user preferences
+        function savePreferences() {
+            localStorage.setItem('kurmaai_preferences', JSON.stringify(userPreferences));
+        }
+
+        // Apply preferences to UI
+        function applyPreferences() {
+            // Apply theme
+            if (userPreferences.theme === 'light') {
+                document.documentElement.style.setProperty('--bg-color', '#fafbfc');
+                document.documentElement.style.setProperty('--chat-bg', '#ffffff');
+                document.documentElement.style.setProperty('--text-color', '#1f2937');
+                document.documentElement.style.setProperty('--border', '#e5e7eb');
+                // Update sidebar for light theme
+                document.getElementById('sidebar').style.background = '#ffffff';
+                document.getElementById('sidebar').style.borderRight = '1px solid #e5e7eb';
+                // Update textarea for light theme
+                const textarea = document.getElementById('userInput');
+                textarea.style.background = '#f9fafb';
+                textarea.style.borderColor = '#e5e7eb';
+                textarea.style.color = '#1f2937';
+                // Update status color for light theme
+                document.getElementById('status-container').style.color = '#6b7280';
+            } else {
+                document.documentElement.style.setProperty('--bg-color', '#131415');
+                document.documentElement.style.setProperty('--chat-bg', '#1e1f22');
+                document.documentElement.style.setProperty('--text-color', '#e3e6e8');
+                document.documentElement.style.setProperty('--border', '#2b2d31');
+                // Reset sidebar for dark theme
+                document.getElementById('sidebar').style.background = '';
+                document.getElementById('sidebar').style.borderRight = '';
+                // Reset textarea for dark theme
+                const textarea = document.getElementById('userInput');
+                textarea.style.background = '#2b2d31';
+                textarea.style.borderColor = '#2b2d31';
+                textarea.style.color = '#e3e6e8';
+                // Reset status color for dark theme
+                document.getElementById('status-container').style.color = '#b5bac1';
+            }
+            
+            // Apply font size
+            document.body.style.fontSize = userPreferences.fontSize + 'px';
+            
+            // Apply typing speed
+            typingSpeed = userPreferences.typingSpeed;
+            
+            // Apply sidebar visibility
+            document.getElementById('sidebar').style.display = userPreferences.showSidebar ? 'flex' : 'none';
+            
+            // Update UI controls
+            document.getElementById('theme-select').value = userPreferences.theme;
+            document.getElementById('font-size-range').value = userPreferences.fontSize;
+            document.getElementById('font-size-value').textContent = userPreferences.fontSize + 'px';
+            document.getElementById('typing-speed-range').value = userPreferences.typingSpeed;
+            document.getElementById('typing-speed-value').textContent = userPreferences.typingSpeed + 'ms';
+            document.getElementById('sidebar-toggle').value = userPreferences.showSidebar ? 'show' : 'hide';
+        }
+
+        // Settings functions
+        window.toggleSettings = function() {
+            document.getElementById('settings-modal').classList.toggle('active');
+        }
+
+        window.changeTheme = function(theme) {
+            userPreferences.theme = theme;
+            applyPreferences();
+        }
+
+        window.changeFontSize = function(size) {
+            userPreferences.fontSize = parseInt(size);
+            document.getElementById('font-size-value').textContent = size + 'px';
+            applyPreferences();
+        }
+
+        window.changeTypingSpeed = function(speed) {
+            userPreferences.typingSpeed = parseInt(speed);
+            document.getElementById('typing-speed-value').textContent = speed + 'ms';
+            typingSpeed = userPreferences.typingSpeed;
+        }
+
+        window.toggleSidebar = function(value) {
+            userPreferences.showSidebar = value === 'show';
+            applyPreferences();
+        }
+
+        window.saveSettings = function() {
+            savePreferences();
+            toggleSettings();
+        }
+
+        // Voice recognition setup
+        function setupVoiceRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    const inputEl = document.getElementById('userInput');
+                    inputEl.value += (inputEl.value ? ' ' : '') + transcript;
+                };
+
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error:', event.error);
+                    stopRecording();
+                };
+
+                recognition.onend = function() {
+                    stopRecording();
+                };
+            } else {
+                console.warn('Speech recognition not supported in this browser');
+                document.getElementById('mic-btn').style.display = 'none';
+            }
+        }
+
+        window.toggleRecording = function() {
+            if (!recognition) {
+                alert('Voice recognition is not supported in your browser. Please use Chrome or Edge.');
+                return;
+            }
+
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        };
+
+        function startRecording() {
+            isRecording = true;
+            recognition.start();
+            document.getElementById('mic-btn').classList.add('recording');
+            document.getElementById('mic-btn').textContent = '⏹️';
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            if (recognition) {
+                recognition.stop();
+            }
+            document.getElementById('mic-btn').classList.remove('recording');
+            document.getElementById('mic-btn').textContent = '🎤';
+        }
+
+        // File upload handling
+        window.handleFileUpload = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedFileContent = e.target.result;
+                const inputEl = document.getElementById('userInput');
+                const filePrompt = `[File: ${file.name}]\nContent:\n${uploadedFileContent}\n\nPlease analyze this content and respond accordingly.`;
+                inputEl.value = filePrompt;
+            };
+
+            reader.onerror = function() {
+                alert('Error reading file. Please try again.');
+            };
+
+            // For text files, read as text
+            if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+                reader.readAsText(file);
+            } else {
+                // For other files, we'll need to handle them differently
+                // For now, just read as text (will work for simple text-based files)
+                reader.readAsText(file);
+            }
+
+            // Reset file input
+            event.target.value = '';
+        };
+
+        // Language code mapping
+        const languageNames = {
+            'en': 'English',
+            'es': 'Spanish', 
+            'fr': 'French',
+            'de': 'German',
+            'it': 'Italian',
+            'pt': 'Portuguese',
+            'ru': 'Russian',
+            'zh': 'Chinese',
+            'ja': 'Japanese',
+            'ko': 'Korean',
+            'hi': 'Hindi',
+            'ar': 'Arabic',
+            'bn': 'Bengali',
+            'ta': 'Tamil',
+            'te': 'Telugu'
+        };
+
+        async function initApp() {
+            const statusDiv = document.getElementById("status-container");
+            
+            try {
+                statusDiv.innerText = "System Status: Loading AI model (this may take a minute on first run)...";
+                
+                generator = await pipeline('text2text-generation', selectedModel, {
+                    progress_callback: (progress) => {
+                        if (progress.status === 'progress') {
+                            const percent = progress.progress ? Math.round(progress.progress) : 0;
+                            statusDiv.innerText = `System Status: Downloading model... ${percent}%`;
+                        } else if (progress.status === 'done') {
+                            statusDiv.innerText = "System Status: Model loaded successfully";
+                        }
+                    }
+                });
+                
+                statusDiv.innerText = "System Status: KurmaAI Engine Active (100% Local - CPU/WebAssembly with Multilingual Support)";
+                document.getElementById("userInput").disabled = false;
+                document.getElementById("sendBtn").disabled = false;
+                document.getElementById("mic-btn").disabled = false;
+                document.getElementById("upload-btn").disabled = false;
+                
+                // Setup voice recognition
+                setupVoiceRecognition();
+            } catch (error) {
+                const errorMsg = error.message || error.toString();
+                console.error("Model Error:", error);
+                statusDiv.innerHTML = `❌ Error: Model initialization failed.<br><br><strong>Details:</strong> ${errorMsg}<br><br><strong>Troubleshooting:</strong><br>1. Check your internet connection<br>2. Try refreshing the page<br>3. Check browser console for more details`;
+            }
+        }
+
+        // Simple language detection based on character patterns
+        function detectLanguage(text) {
+            // Check for specific character patterns
+            if (/[ऀ-ॿ]/.test(text)) return 'hi'; // Hindi
+            if (/[஀-௿]/.test(text)) return 'ta'; // Tamil
+            if (/[ఀ-౿]/.test(text)) return 'te'; // Telugu
+            if (/[一-鿿]/.test(text)) return 'zh'; // Chinese
+            if (/[぀-ゟ゠-ヿ]/.test(text)) return 'ja'; // Japanese
+            if (/[가-힯]/.test(text)) return 'ko'; // Korean
+            if (/[Ѐ-ӿ]/.test(text)) return 'ru'; // Russian
+            if (/[؀-ۿ]/.test(text)) return 'ar'; // Arabic
+            if (/[àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ]/.test(text)) {
+                if (/ß/.test(text)) return 'de'; // German
+                if (/ñ/.test(text)) return 'es'; // Spanish
+                if (/ç/.test(text)) return 'pt'; // Portuguese
+                if (/àèìòù/.test(text)) return 'it'; // Italian
+                return 'fr'; // French
+            }
+            return 'en'; // Default to English
+        }
+
+        // Detect language request in English prompts
+        function detectLanguageRequest(text) {
+            const lowerText = text.toLowerCase();
+            
+            // Check for explicit language requests
+            const languagePatterns = {
+                'spanish': ['in spanish', 'respond in spanish', 'in español', 'spanish response'],
+                'french': ['in french', 'respond in french', 'en français', 'french response'],
+                'german': ['in german', 'respond in german', 'auf deutsch', 'german response'],
+                'italian': ['in italian', 'respond in italian', 'in italiano', 'italian response'],
+                'portuguese': ['in portuguese', 'respond in portuguese', 'em português', 'portuguese response'],
+                'russian': ['in russian', 'respond in russian', 'на русском', 'russian response'],
+                'chinese': ['in chinese', 'respond in chinese', '中文', 'chinese response', 'in mandarin'],
+                'japanese': ['in japanese', 'respond in japanese', '日本語', 'japanese response'],
+                'korean': ['in korean', 'respond in korean', '한국어', 'korean response'],
+                'hindi': ['in hindi', 'respond in hindi', 'हिंदी', 'hindi response'],
+                'arabic': ['in arabic', 'respond in arabic', 'بالعربية', 'arabic response'],
+                'bengali': ['in bengali', 'respond in bengali', 'বাংলা', 'bengali response'],
+                'tamil': ['in tamil', 'respond in tamil', 'தமிழ்', 'tamil response'],
+                'telugu': ['in telugu', 'respond in telugu', 'తెలుగు', 'telugu response']
+            };
+            
+            for (const [lang, patterns] of Object.entries(languagePatterns)) {
+                for (const pattern of patterns) {
+                    if (lowerText.includes(pattern)) {
+                        return lang;
+                    }
+                }
+            }
+            
+            return null; // No language request detected
+        }
+
+        // Get language name from code
+        function getLanguageName(code) {
+            return languageNames[code] || 'English';
+        }
+
+        window.askAI = async function() {
+            const inputEl = document.getElementById("userInput");
+            const input = inputEl.value.trim();
+            if (!input) return;
+            
+            // Add to search history
+            addToHistory(input);
+            
+            // Disable input while generating
+            inputEl.disabled = true;
+            document.getElementById("sendBtn").disabled = true;
+            document.getElementById("clearBtn").disabled = true;
+            document.getElementById("mic-btn").disabled = true;
+            document.getElementById("upload-btn").disabled = true;
+
+            const chatbox = document.getElementById("chatbox");
+            chatbox.innerHTML += `<div class="msg user-msg"><strong>You:</strong> ${input}</div>`;
+            inputEl.value = "";
+
+            const aiResponsePlaceholder = document.createElement("div");
+            aiResponsePlaceholder.className = "msg ai-msg";
+            aiResponsePlaceholder.innerHTML = "<strong>KurmaAI:</strong> ";
+            chatbox.appendChild(aiResponsePlaceholder);
+            chatbox.scrollTop = chatbox.scrollHeight;
+
+            try {
+                // Detect language
+                const detectedLang = detectLanguage(input);
+                const langName = getLanguageName(detectedLang);
+                
+                // Modify prompt to encourage response in detected language
+                let prompt = input;
+                if (detectedLang !== 'en') {
+                    prompt = `Please respond in ${langName}. ${input}`;
+                }
+                
+                const output = await generator(prompt, {
+                    max_new_tokens: 256,
+                    temperature: 0.7,
+                    do_sample: true
+                });
+                
+                // Clean up the response (remove the language instruction if present)
+                let responseText = output[0].generated_text;
+                if (detectedLang !== 'en' && responseText.startsWith(`Please respond in ${langName}.`)) {
+                    responseText = responseText.replace(`Please respond in ${langName}.`, '').trim();
+                }
+                
+                // Typewriter effect
+                let index = 0;
+                
+                function typeWriter() {
+                    if (index < responseText.length) {
+                        aiResponsePlaceholder.innerHTML = `<strong>KurmaAI:</strong> ${responseText.substring(0, index + 1)}`;
+                        index++;
+                        chatbox.scrollTop = chatbox.scrollHeight;
+                        setTimeout(typeWriter, typingSpeed);
+                    } else {
+                        // Re-enable input after typing completes
+                        inputEl.disabled = false;
+                        document.getElementById("sendBtn").disabled = false;
+                        document.getElementById("clearBtn").disabled = false;
+                        document.getElementById("mic-btn").disabled = false;
+                        document.getElementById("upload-btn").disabled = false;
+                        inputEl.focus();
+                    }
+                }
+                
+                typeWriter();
+            } catch (err) {
+                aiResponsePlaceholder.innerHTML = `<strong>KurmaAI:</strong> Error generating response. ${err.message}`;
+                chatbox.scrollTop = chatbox.scrollHeight;
+                
+                // Re-enable input on error
+                inputEl.disabled = false;
+                document.getElementById("sendBtn").disabled = false;
+                document.getElementById("clearBtn").disabled = false;
+                document.getElementById("mic-btn").disabled = false;
+                document.getElementById("upload-btn").disabled = false;
+                inputEl.focus();
+            }
+        }
+
+        window.clearHistory = function() {
+            const chatbox = document.getElementById("chatbox");
+            chatbox.innerHTML = "";
+            // Also clear search history
+            searchHistory = [];
+            saveSearchHistory();
+            updateHistoryUI();
+        }
+
+        // Add Enter key support
+        document.getElementById("userInput").addEventListener("keydown", function(e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (!this.disabled) {
+                    askAI();
+                }
+            }
+        });
+
+        // Load history and preferences on init
+        loadSearchHistory();
+        loadPreferences();
+        initApp();
+    </script>
+</body>
+</html>
