@@ -37,6 +37,20 @@
             margin-bottom: 16px;
             color: var(--text-color);
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .kurma-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            object-fit: cover;
+        }
+        h1 .kurma-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
         }
         #history-list {
             flex: 1;
@@ -155,34 +169,143 @@
         .input-area {
             display: flex;
             gap: 12px;
-            align-items: center;
+            align-items: flex-end;
         }
-        #mic-btn {
+        .prompt-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
             background: #2b2d31;
-            border: 1px solid #2b2d31;
-            padding: 0 16px;
+            border: 1.5px solid #3b3d41;
+            border-radius: 16px;
+            padding: 4px;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.3s;
+            position: relative;
         }
-        #mic-btn:hover:not(:disabled) {
-            background: #3b3d41;
+        .prompt-container:focus-within {
+            border-color: #3578e5;
+            box-shadow: 0 0 0 3px rgba(53, 120, 229, 0.15);
+        }
+        .prompt-container .prompt-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 2px;
+            padding: 2px 6px 4px 6px;
+        }
+        /* Uploaded file chip */
+        .file-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(53, 120, 229, 0.15);
+            border: 1px solid rgba(53, 120, 229, 0.3);
+            color: #7aafff;
+            font-size: 0.8rem;
+            padding: 4px 10px;
+            border-radius: 8px;
+            margin: 6px 8px 0 8px;
+            max-width: fit-content;
+            animation: fadeInChip 0.2s ease;
+        }
+        @keyframes fadeInChip {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .file-chip .file-chip-remove {
+            cursor: pointer;
+            opacity: 0.7;
+            font-size: 0.9rem;
+            transition: opacity 0.15s;
+        }
+        .file-chip .file-chip-remove:hover {
+            opacity: 1;
+        }
+        #mic-btn, #upload-btn {
+            background: transparent;
+            border: none;
+            padding: 0;
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            color: #b5bac1;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, transform 0.1s;
+        }
+        #mic-btn:hover:not(:disabled),
+        #upload-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.08);
+            color: #e3e6e8;
+        }
+        #mic-btn:active:not(:disabled),
+        #upload-btn:active:not(:disabled) {
+            transform: scale(0.92);
         }
         #mic-btn.recording {
-            background: #da3633;
+            background: rgba(218, 54, 51, 0.2);
+            color: #ff6b6b;
             animation: pulse 1.5s infinite;
+        }
+        #tts-btn {
+            background: transparent;
+            border: none;
+            padding: 0;
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            color: #b5bac1;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, transform 0.1s;
+        }
+        #tts-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #e3e6e8;
+        }
+        #tts-btn:active {
+            transform: scale(0.92);
+        }
+        #tts-btn.tts-on {
+            background: rgba(53, 120, 229, 0.2);
+            color: #7aafff;
         }
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
-        #upload-btn {
-            background: #2b2d31;
-            border: 1px solid #2b2d31;
-            padding: 0 16px;
-        }
-        #upload-btn:hover:not(:disabled) {
-            background: #3b3d41;
-        }
         #file-input {
             display: none;
+        }
+        #sendBtn {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            padding: 0;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            background: #3578e5;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+        }
+        #sendBtn:hover:not(:disabled) {
+            background: #2563eb;
+        }
+        #sendBtn:active:not(:disabled) {
+            transform: scale(0.92);
         }
         #main-content {
             flex: 1;
@@ -235,24 +358,23 @@
         .user-msg { color: #58a6ff; }
         .ai-msg { color: #8b949e; }
         .msg strong { font-weight: 600; }
-        .input-area { display: flex; gap: 12px; align-items: center; }
         textarea {
             flex: 1;
-            background: #2b2d31;
-            border: 1px solid #2b2d31;
+            background: transparent;
+            border: none;
             color: #e3e6e8;
-            padding: 14px 16px;
-            border-radius: 8px;
+            padding: 12px 14px 4px 14px;
+            border-radius: 0;
             resize: none;
-            height: 60px;
+            min-height: 44px;
+            max-height: 180px;
             font-size: 1rem;
-            line-height: 1.4;
-            transition: border-color 0.2s, box-shadow 0.2s, background 0.3s, color 0.3s;
+            line-height: 1.5;
+            transition: color 0.3s;
+            overflow-y: auto;
         }
         textarea:focus {
             outline: none;
-            border-color: #3578e5;
-            box-shadow: 0 0 0 3px rgba(53, 120, 229, 0.1);
         }
         button {
             background: #3578e5;
@@ -263,7 +385,7 @@
             cursor: pointer;
             font-weight: 600;
             font-size: 0.95rem;
-            height: 60px;
+            height: 44px;
             transition: background-color 0.2s, transform 0.1s;
         }
         button:hover:not(:disabled) {
@@ -277,11 +399,24 @@
             cursor: not-allowed;
         }
         #clearBtn {
-            background: #da3633;
-            padding: 0 20px;
+            background: transparent;
+            border: 1px solid #3b3d41;
+            padding: 10px 12px;
+            border-radius: 6px;
+            color: #b5bac1;
+            font-weight: 500;
+            font-size: 0.9rem;
+            height: auto;
+            width: 100%;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+            margin-top: 8px;
+            text-align: left;
         }
         #clearBtn:hover:not(:disabled) {
-            background: #b91c1c;
+            background: rgba(218, 54, 51, 0.1);
+            border-color: rgba(218, 54, 51, 0.4);
+            color: #ff6b6b;
         }
 
         /* Hamburger menu button - hidden on desktop */
@@ -354,30 +489,25 @@
             }
 
             .input-area {
-                flex-wrap: wrap;
                 gap: 8px;
             }
 
+            .prompt-container {
+                border-radius: 14px;
+            }
+
             textarea {
-                width: 100%;
-                flex: 1 1 100%;
-                min-width: 0;
-                height: 50px;
+                min-height: 40px;
                 font-size: 16px; /* prevents iOS zoom on focus */
+                padding: 10px 12px 2px 12px;
             }
 
-            .input-area button {
-                height: 44px;
-                font-size: 0.85rem;
-                padding: 0 14px;
-            }
 
-            #clearBtn {
-                padding: 0 14px;
-            }
-
-            #mic-btn, #upload-btn {
-                padding: 0 12px;
+            #mic-btn, #upload-btn, #sendBtn, #tts-btn {
+                width: 32px;
+                height: 32px;
+                min-width: 32px;
+                font-size: 1rem;
             }
 
             #status-container, #disclaimer {
@@ -406,15 +536,9 @@
                 gap: 6px;
             }
 
-            .input-area button {
-                height: 40px;
-                padding: 0 10px;
-                font-size: 0.8rem;
-            }
-
             textarea {
-                height: 44px;
-                padding: 10px 12px;
+                min-height: 36px;
+                padding: 8px 10px 2px 10px;
             }
         }
     </style>
@@ -424,28 +548,34 @@
     <button id="hamburger-btn" onclick="toggleMobileSidebar()" aria-label="Toggle menu">☰</button>
     <div id="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
     <div id="sidebar">
-        <h2>🐢 Kurma Gen AI</h2>
+        <h2><img src="kurma_temple_icon_1784692929107.png" alt="Kurma Gen AI" class="kurma-icon"> Kurma Gen AI</h2>
         <h3 style="font-size: 0.9rem; color: #6b7280; margin-bottom: 16px; font-weight: 500;">Search History</h3>
         <div id="history-list">
             <div class="history-item empty">No search history yet</div>
         </div>
+        <button id="clearBtn" onclick="clearHistory()">🗑 Clear Chat</button>
         <button id="settings-btn" onclick="toggleSettings()">⚙️ Settings</button>
     </div>
 
     <div id="main-content">
-        <h1>🐢 Kurma Gen AI</h1>
+        <h1><img src="kurma_temple_icon_1784692929107.png" alt="Kurma Gen AI" class="kurma-icon"> Kurma Gen AI</h1>
         <div id="status-container">Initializing initialization vectors...</div>
         <div id="disclaimer">⚠️ <strong>Note:</strong> This AI runs locally in your browser with no internet access. It cannot provide real-time information like stock prices, current news, or live data. It's designed for general conversations and text generation based on its training data.</div>
         
         <div id="chatbox"></div>
         
         <div class="input-area">
-            <button id="clearBtn" onclick="clearHistory()">Clear</button>
-            <button id="mic-btn" onclick="toggleRecording()" disabled>🎤</button>
-            <button id="upload-btn" onclick="document.getElementById('file-input').click()" disabled>📎</button>
-            <input type="file" id="file-input" accept=".txt,.pdf,.doc,.docx" onchange="handleFileUpload(event)">
-            <textarea id="userInput" placeholder="Ask Kurma Gen AI something..." disabled></textarea>
-            <button id="sendBtn" onclick="askAI()" disabled>Send</button>
+            <div class="prompt-container" id="prompt-container">
+                <div id="file-chip-area"></div>
+                <textarea id="userInput" placeholder="Ask Kurma Gen AI something..." disabled rows="1"></textarea>
+                <div class="prompt-actions">
+                    <button id="tts-btn" onclick="toggleTTS()" title="Read responses aloud (off)">🔇</button>
+                    <button id="upload-btn" onclick="document.getElementById('file-input').click()" title="Attach file" disabled>📎</button>
+                    <input type="file" id="file-input" accept=".txt,.pdf,.doc,.docx" onchange="handleFileUpload(event)">
+                    <button id="mic-btn" onclick="toggleRecording()" title="Voice input" disabled>🎤</button>
+                    <button id="sendBtn" onclick="askAI()" title="Send message" disabled>➤</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -506,6 +636,7 @@
         let isRecording = false;
         let recognition = null;
         let uploadedFileContent = '';
+        let ttsEnabled = false;
 
         // Load search history from localStorage
         function loadSearchHistory() {
@@ -575,13 +706,19 @@
                 // Update sidebar for light theme
                 document.getElementById('sidebar').style.background = '#ffffff';
                 document.getElementById('sidebar').style.borderRight = '1px solid #e5e7eb';
+                // Update prompt container for light theme
+                const promptContainer = document.getElementById('prompt-container');
+                promptContainer.style.background = '#f3f4f6';
+                promptContainer.style.borderColor = '#d1d5db';
                 // Update textarea for light theme
                 const textarea = document.getElementById('userInput');
-                textarea.style.background = '#f9fafb';
-                textarea.style.borderColor = '#e5e7eb';
                 textarea.style.color = '#1f2937';
                 // Update status color for light theme
                 document.getElementById('status-container').style.color = '#6b7280';
+                // Update inline buttons color for light theme
+                document.querySelectorAll('#mic-btn, #upload-btn').forEach(btn => {
+                    btn.style.color = '#6b7280';
+                });
             } else {
                 document.documentElement.style.setProperty('--bg-color', '#131415');
                 document.documentElement.style.setProperty('--chat-bg', '#1e1f22');
@@ -590,13 +727,19 @@
                 // Reset sidebar for dark theme
                 document.getElementById('sidebar').style.background = '';
                 document.getElementById('sidebar').style.borderRight = '';
+                // Reset prompt container for dark theme
+                const promptContainer = document.getElementById('prompt-container');
+                promptContainer.style.background = '#2b2d31';
+                promptContainer.style.borderColor = '#3b3d41';
                 // Reset textarea for dark theme
                 const textarea = document.getElementById('userInput');
-                textarea.style.background = '#2b2d31';
-                textarea.style.borderColor = '#2b2d31';
                 textarea.style.color = '#e3e6e8';
                 // Reset status color for dark theme
                 document.getElementById('status-container').style.color = '#b5bac1';
+                // Reset inline buttons color for dark theme
+                document.querySelectorAll('#mic-btn, #upload-btn').forEach(btn => {
+                    btn.style.color = '';
+                });
             }
             
             // Apply font size
@@ -715,6 +858,51 @@
             document.getElementById('mic-btn').textContent = '🎤';
         }
 
+        // Text-to-Speech toggle
+        window.toggleTTS = function() {
+            ttsEnabled = !ttsEnabled;
+            const ttsBtn = document.getElementById('tts-btn');
+            if (ttsEnabled) {
+                ttsBtn.textContent = '🔊';
+                ttsBtn.classList.add('tts-on');
+                ttsBtn.title = 'Read responses aloud (on)';
+            } else {
+                // Stop any ongoing speech
+                if ('speechSynthesis' in window) {
+                    speechSynthesis.cancel();
+                }
+                ttsBtn.textContent = '🔇';
+                ttsBtn.classList.remove('tts-on');
+                ttsBtn.title = 'Read responses aloud (off)';
+            }
+        };
+
+        // Speak AI response using SpeechSynthesis
+        function speakResponse(text) {
+            if (!('speechSynthesis' in window)) {
+                console.warn('Speech synthesis not supported in this browser');
+                return;
+            }
+            // Cancel any ongoing speech
+            speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+
+            // Try to pick a good voice
+            const voices = speechSynthesis.getVoices();
+            const preferredVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Google')) 
+                || voices.find(v => v.lang.startsWith('en'))
+                || voices[0];
+            if (preferredVoice) {
+                utterance.voice = preferredVoice;
+            }
+
+            speechSynthesis.speak(utterance);
+        }
+
         // File upload handling
         window.handleFileUpload = function(event) {
             const file = event.target.files[0];
@@ -723,9 +911,8 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 uploadedFileContent = e.target.result;
-                const inputEl = document.getElementById('userInput');
-                const filePrompt = `[File: ${file.name}]\nContent:\n${uploadedFileContent}\n\nPlease analyze this content and respond accordingly.`;
-                inputEl.value = filePrompt;
+                // Show file chip instead of dumping content into textarea
+                showFileChip(file.name);
             };
 
             reader.onerror = function() {
@@ -736,14 +923,36 @@
             if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
                 reader.readAsText(file);
             } else {
-                // For other files, we'll need to handle them differently
-                // For now, just read as text (will work for simple text-based files)
                 reader.readAsText(file);
             }
 
             // Reset file input
             event.target.value = '';
         };
+
+        // Show file chip in prompt area
+        function showFileChip(filename) {
+            const chipArea = document.getElementById('file-chip-area');
+            chipArea.innerHTML = `
+                <div class="file-chip">
+                    <span>📄 ${filename}</span>
+                    <span class="file-chip-remove" onclick="removeFileChip()" title="Remove file">✕</span>
+                </div>
+            `;
+        }
+
+        // Remove file chip
+        window.removeFileChip = function() {
+            uploadedFileContent = '';
+            document.getElementById('file-chip-area').innerHTML = '';
+        };
+
+        // Textarea auto-resize
+        const userInputEl = document.getElementById('userInput');
+        userInputEl.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 180) + 'px';
+        });
 
         // Language code mapping
         const languageNames = {
@@ -857,8 +1066,20 @@
 
         window.askAI = async function() {
             const inputEl = document.getElementById("userInput");
-            const input = inputEl.value.trim();
-            if (!input) return;
+            let input = inputEl.value.trim();
+            if (!input && !uploadedFileContent) return;
+
+            // If there's uploaded file content, prepend it to the prompt
+            if (uploadedFileContent) {
+                const fileChipEl = document.querySelector('.file-chip span:first-child');
+                const fileName = fileChipEl ? fileChipEl.textContent.replace('📄 ', '') : 'uploaded file';
+                if (input) {
+                    input = `[File: ${fileName}]\nContent:\n${uploadedFileContent}\n\n${input}`;
+                } else {
+                    input = `[File: ${fileName}]\nContent:\n${uploadedFileContent}\n\nPlease analyze this content and respond accordingly.`;
+                }
+                uploadedFileContent = '';
+            }
             
             // Add to search history
             addToHistory(input);
@@ -873,6 +1094,11 @@
             const chatbox = document.getElementById("chatbox");
             chatbox.innerHTML += `<div class="msg user-msg"><strong>You:</strong> ${input}</div>`;
             inputEl.value = "";
+            // Reset textarea height
+            inputEl.style.height = 'auto';
+            // Clear file chip after sending
+            const chipArea = document.getElementById('file-chip-area');
+            if (chipArea) chipArea.innerHTML = '';
 
             const aiResponsePlaceholder = document.createElement("div");
             aiResponsePlaceholder.className = "msg ai-msg";
@@ -920,6 +1146,10 @@
                         document.getElementById("mic-btn").disabled = false;
                         document.getElementById("upload-btn").disabled = false;
                         inputEl.focus();
+                        // Speak response if TTS is enabled
+                        if (ttsEnabled) {
+                            speakResponse(responseText);
+                        }
                     }
                 }
                 
@@ -941,6 +1171,10 @@
         window.clearHistory = function() {
             const chatbox = document.getElementById("chatbox");
             chatbox.innerHTML = "";
+            // Stop any ongoing speech
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+            }
             // Also clear search history
             searchHistory = [];
             saveSearchHistory();
