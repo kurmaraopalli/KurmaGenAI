@@ -560,7 +560,7 @@
     <div id="main-content">
         <h1><img src="kurma_temple_icon_1784692929107.png" alt="Kurma Gen AI" class="kurma-icon"> Kurma Gen AI</h1>
         <div id="status-container">Initializing initialization vectors...</div>
-        <div id="disclaimer">⚠️ <strong>Note:</strong> This AI runs locally in your browser with no internet access. It cannot provide real-time information like stock prices, current news, or live data. It's designed for general conversations and text generation based on its training data.</div>
+        <div id="disclaimer">⚠️ <strong>Note:</strong> This AI runs locally in your browser with no internet access. It cannot provide real-time information like stock prices, current news, or live data. It's designed for general conversations and text generation based on its training data. <strong>Sports & factual queries</strong> are enhanced with a curated knowledge base for improved accuracy.</div>
         
         <div id="chatbox"></div>
         
@@ -637,6 +637,122 @@
         let recognition = null;
         let uploadedFileContent = '';
         let ttsEnabled = false;
+
+        // ========== CURATED KNOWLEDGE BASE ==========
+        // Provides accurate factual answers for common queries
+        const knowledgeBase = [
+            // === FIFA WORLD CUP ===
+            { patterns: ['fifa 2026', 'world cup 2026', 'fifa world cup 2026'], answer: 'The 2026 FIFA World Cup is being held in the United States, Canada, and Mexico (June–July 2026). As this is a current/ongoing event, I may not have the latest results. Please check a live sports source for up-to-date scores and standings.' },
+            { patterns: ['fifa 2022', 'world cup 2022', 'fifa world cup 2022'], answer: 'Argentina won the 2022 FIFA World Cup, defeating France in a thrilling final (3-3, 4-2 on penalties) held in Qatar on December 18, 2022. Lionel Messi won the Golden Ball award.' },
+            { patterns: ['fifa 2018', 'world cup 2018', 'fifa world cup 2018'], answer: 'France won the 2018 FIFA World Cup, defeating Croatia 4-2 in the final held in Moscow, Russia on July 15, 2018.' },
+            { patterns: ['fifa 2014', 'world cup 2014', 'fifa world cup 2014'], answer: 'Germany won the 2014 FIFA World Cup, defeating Argentina 1-0 (extra time) in the final held in Rio de Janeiro, Brazil on July 13, 2014. Mario Götze scored the winning goal.' },
+            { patterns: ['fifa 2010', 'world cup 2010', 'fifa world cup 2010'], answer: 'Spain won the 2010 FIFA World Cup, defeating the Netherlands 1-0 (extra time) in the final held in Johannesburg, South Africa on July 11, 2010. Andrés Iniesta scored the winning goal.' },
+            { patterns: ['fifa 2006', 'world cup 2006', 'fifa world cup 2006'], answer: 'Italy won the 2006 FIFA World Cup, defeating France 5-3 on penalties (1-1 after extra time) in the final held in Berlin, Germany on July 9, 2006.' },
+            { patterns: ['fifa 2002', 'world cup 2002', 'fifa world cup 2002'], answer: 'Brazil won the 2002 FIFA World Cup, defeating Germany 2-0 in the final held in Yokohama, Japan on June 30, 2002. Ronaldo scored both goals.' },
+            { patterns: ['fifa 1998', 'world cup 1998', 'fifa world cup 1998'], answer: 'France won the 1998 FIFA World Cup, defeating Brazil 3-0 in the final held in Saint-Denis, France on July 12, 1998. Zinedine Zidane scored twice.' },
+            { patterns: ['most fifa world cup', 'most world cups won'], answer: 'Brazil holds the record for the most FIFA World Cup titles with 5 wins (1958, 1962, 1970, 1994, 2002). Germany and Italy have 4 each, Argentina has 3 (1978, 1986, 2022), and France has 2 (1998, 2018).' },
+
+            // === CRICKET WORLD CUP (ODI) ===
+            { patterns: ['cricket world cup 2023', 'icc world cup 2023', 'cwc 2023', 'odi world cup 2023'], answer: 'Australia won the 2023 ICC Cricket World Cup, defeating India by 6 wickets in the final held at the Narendra Modi Stadium in Ahmedabad, India on November 19, 2023. Travis Head was Player of the Match.' },
+            { patterns: ['cricket world cup 2019', 'icc world cup 2019', 'cwc 2019', 'odi world cup 2019'], answer: 'England won the 2019 ICC Cricket World Cup, defeating New Zealand in a dramatic final at Lord\'s, London on July 14, 2019. The match ended in a tie (241-241) and a Super Over tie, with England winning on boundary count.' },
+            { patterns: ['cricket world cup 2015', 'icc world cup 2015', 'cwc 2015', 'odi world cup 2015'], answer: 'Australia won the 2015 ICC Cricket World Cup, defeating New Zealand by 7 wickets in the final held at the MCG, Melbourne on March 29, 2015.' },
+            { patterns: ['cricket world cup 2011', '2011 cricket world cup', 'icc world cup 2011', 'cwc 2011', 'odi world cup 2011'], answer: 'India won the 2011 ICC Cricket World Cup, defeating Sri Lanka by 6 wickets in the final held at the Wankhede Stadium, Mumbai on April 2, 2011. MS Dhoni hit the winning six and was Player of the Match. This was India\'s second World Cup title.' },
+            { patterns: ['cricket world cup 2007', 'icc world cup 2007', 'cwc 2007', 'odi world cup 2007'], answer: 'Australia won the 2007 ICC Cricket World Cup, defeating Sri Lanka by 53 runs (DLS method) in the final held in Bridgetown, Barbados on April 28, 2007. This was Australia\'s third consecutive World Cup title.' },
+            { patterns: ['cricket world cup 2003', 'icc world cup 2003', 'cwc 2003'], answer: 'Australia won the 2003 ICC Cricket World Cup, defeating India by 125 runs in the final held in Johannesburg, South Africa on March 23, 2003. Ricky Ponting scored 140* in the final.' },
+            { patterns: ['cricket world cup 1999', 'icc world cup 1999', 'cwc 1999'], answer: 'Australia won the 1999 ICC Cricket World Cup, defeating Pakistan by 8 wickets in the final held at Lord\'s, London on June 20, 1999.' },
+            { patterns: ['cricket world cup 1996', 'icc world cup 1996', 'cwc 1996'], answer: 'Sri Lanka won the 1996 ICC Cricket World Cup, defeating Australia by 7 wickets in the final held in Lahore, Pakistan on March 17, 1996. Aravinda de Silva was Player of the Match.' },
+            { patterns: ['cricket world cup 1983', 'icc world cup 1983', 'cwc 1983'], answer: 'India won the 1983 ICC Cricket World Cup (Prudential Cup), defeating the West Indies by 43 runs in the final held at Lord\'s, London on June 25, 1983. This was India\'s first World Cup title, captained by Kapil Dev.' },
+            { patterns: ['most cricket world cup', 'most odi world cups'], answer: 'Australia holds the record for the most ICC Cricket World Cup (ODI) titles with 6 wins (1987, 1999, 2003, 2007, 2015, 2023). India and West Indies have 2 each.' },
+
+            // === T20 WORLD CUP ===
+            { patterns: ['t20 world cup 2024', 'icc t20 world cup 2024', 't20 wc 2024'], answer: 'India won the 2024 ICC T20 World Cup, defeating South Africa by 7 runs in the final held in Barbados on June 29, 2024. Virat Kohli was Player of the Match. This was India\'s second T20 World Cup title.' },
+            { patterns: ['t20 world cup 2022', 'icc t20 world cup 2022', 't20 wc 2022'], answer: 'England won the 2022 ICC T20 World Cup, defeating Pakistan by 5 wickets in the final held at the MCG, Melbourne on November 13, 2022. Ben Stokes was Player of the Match.' },
+            { patterns: ['t20 world cup 2021', 'icc t20 world cup 2021', 't20 wc 2021'], answer: 'Australia won the 2021 ICC T20 World Cup, defeating New Zealand by 8 wickets in the final held in Dubai on November 14, 2021. Mitchell Marsh was Player of the Match.' },
+
+            // === IPL ===
+            { patterns: ['ipl 2024', 'ipl 2024 winner'], answer: 'Kolkata Knight Riders (KKR) won the IPL 2024 title, defeating Sunrisers Hyderabad (SRH) by 8 wickets in the final held at the MA Chidambaram Stadium, Chennai on May 26, 2024.' },
+            { patterns: ['ipl 2023', 'ipl 2023 winner'], answer: 'Chennai Super Kings (CSK) won the IPL 2023 title, defeating Gujarat Titans (GT) by 5 wickets in the final held at the Narendra Modi Stadium, Ahmedabad on May 29, 2023. MS Dhoni lifted his 5th IPL trophy.' },
+            { patterns: ['most ipl titles', 'most ipl wins', 'most ipl trophies'], answer: 'Mumbai Indians (MI) and Chennai Super Kings (CSK) hold the record for most IPL titles with 5 each. MI won in 2013, 2015, 2017, 2019, 2020. CSK won in 2010, 2011, 2018, 2021, 2023.' },
+
+            // === CHAMPIONS TROPHY ===
+            { patterns: ['champions trophy 2025', 'icc champions trophy 2025', 'ct 2025'], answer: 'India won the 2025 ICC Champions Trophy, held in Pakistan and Dubai (February–March 2025). India defeated New Zealand in the final.' },
+            { patterns: ['champions trophy 2017', 'icc champions trophy 2017', 'ct 2017'], answer: 'Pakistan won the 2017 ICC Champions Trophy, defeating India by 180 runs in the final held at The Oval, London on June 18, 2017. Fakhar Zaman scored 114 in the final.' },
+
+            // === OLYMPICS ===
+            { patterns: ['olympics 2024', '2024 olympics', 'paris olympics', 'paris 2024'], answer: 'The 2024 Summer Olympics were held in Paris, France from July 26 to August 11, 2024. The United States topped the medal tally with 126 medals (40 gold), followed by China with 91 medals (40 gold), and Great Britain.' },
+            { patterns: ['olympics 2020', '2020 olympics', 'tokyo olympics', 'tokyo 2020', '2021 olympics'], answer: 'The 2020 Summer Olympics (held in 2021 due to COVID-19) took place in Tokyo, Japan from July 23 to August 8, 2021. The United States topped the medal tally with 113 medals (39 gold), followed by China and ROC (Russia).' },
+
+            // === FOOTBALL / SOCCER ===
+            { patterns: ['euro 2024', 'european championship 2024', 'uefa euro 2024'], answer: 'Spain won UEFA Euro 2024, defeating England 2-1 in the final held in Berlin, Germany on July 14, 2024.' },
+            { patterns: ['champions league 2024', 'ucl 2024', 'uefa champions league 2024'], answer: 'Real Madrid won the 2023-24 UEFA Champions League, defeating Borussia Dortmund 2-0 in the final held at Wembley Stadium, London on June 1, 2024.' },
+            { patterns: ['ballon d\'or 2024', 'ballon d or 2024', 'balon dor 2024'], answer: 'Rodri (Manchester City/Spain) won the 2024 Ballon d\'Or, ending the Messi-Ronaldo era dominance.' },
+            { patterns: ['ballon d\'or 2023', 'ballon d or 2023', 'balon dor 2023'], answer: 'Lionel Messi won the 2023 Ballon d\'Or, his 8th overall, after leading Argentina to the 2022 FIFA World Cup title.' },
+
+            // === TENNIS ===
+            { patterns: ['most grand slam', 'most grand slams', 'most tennis grand slam'], answer: 'Novak Djokovic holds the record for the most men\'s Grand Slam singles titles with 24. Margaret Court holds the all-time record with 24 women\'s singles titles. In the Open Era, Serena Williams leads women with 23.' },
+
+            // === GENERAL KNOWLEDGE ===
+            { patterns: ['capital of india'], answer: 'The capital of India is New Delhi.' },
+            { patterns: ['capital of usa', 'capital of united states', 'capital of america'], answer: 'The capital of the United States of America is Washington, D.C.' },
+            { patterns: ['capital of china'], answer: 'The capital of China is Beijing.' },
+            { patterns: ['capital of japan'], answer: 'The capital of Japan is Tokyo.' },
+            { patterns: ['capital of uk', 'capital of united kingdom', 'capital of england', 'capital of britain'], answer: 'The capital of the United Kingdom is London.' },
+            { patterns: ['capital of france'], answer: 'The capital of France is Paris.' },
+            { patterns: ['capital of germany'], answer: 'The capital of Germany is Berlin.' },
+            { patterns: ['capital of australia'], answer: 'The capital of Australia is Canberra.' },
+            { patterns: ['capital of brazil'], answer: 'The capital of Brazil is Brasília.' },
+            { patterns: ['capital of russia'], answer: 'The capital of Russia is Moscow.' },
+            { patterns: ['capital of canada'], answer: 'The capital of Canada is Ottawa.' },
+
+            // === SCIENCE & SPACE ===
+            { patterns: ['speed of light'], answer: 'The speed of light in a vacuum is approximately 299,792,458 meters per second (about 300,000 km/s or 186,000 miles/s). It is denoted by the letter "c" and is a fundamental constant of physics.' },
+            { patterns: ['how many planets', 'planets in solar system'], answer: 'There are 8 planets in our Solar System: Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, and Neptune. Pluto was reclassified as a dwarf planet by the International Astronomical Union (IAU) in 2006.' },
+            { patterns: ['largest planet'], answer: 'Jupiter is the largest planet in our Solar System. It has a diameter of about 142,984 km (88,846 miles), making it more than 11 times the diameter of Earth.' },
+            { patterns: ['smallest planet'], answer: 'Mercury is the smallest planet in our Solar System, with a diameter of about 4,879 km (3,032 miles).' },
+            { patterns: ['nearest star', 'closest star'], answer: 'The nearest star to Earth (other than the Sun) is Proxima Centauri, located approximately 4.24 light-years away in the Alpha Centauri star system.' },
+
+            // === HISTORY ===
+            { patterns: ['who invented internet'], answer: 'The Internet was developed through contributions from many scientists. Key figures include Vint Cerf and Bob Kahn, who developed TCP/IP protocols in the 1970s. Tim Berners-Lee invented the World Wide Web (WWW) in 1989 at CERN.' },
+            { patterns: ['who invented telephone'], answer: 'Alexander Graham Bell is credited with inventing the first practical telephone and was granted the patent on March 7, 1876.' },
+            { patterns: ['first man on moon', 'who walked on moon first', 'first person on moon'], answer: 'Neil Armstrong became the first human to walk on the Moon on July 20, 1969, during the Apollo 11 mission. His famous words were: "That\'s one small step for man, one giant leap for mankind."' },
+            { patterns: ['who invented electricity'], answer: 'Electricity is a natural phenomenon and was not "invented." However, Benjamin Franklin demonstrated the connection between lightning and electricity in 1752. Michael Faraday discovered electromagnetic induction in 1831, and Thomas Edison developed the first practical incandescent light bulb in 1879.' },
+
+            // === TECHNOLOGY ===
+            { patterns: ['who created google'], answer: 'Google was founded by Larry Page and Sergey Brin on September 4, 1998, while they were Ph.D. students at Stanford University. The company is now a subsidiary of Alphabet Inc.' },
+            { patterns: ['who created apple', 'who founded apple'], answer: 'Apple Inc. was founded by Steve Jobs, Steve Wozniak, and Ronald Wayne on April 1, 1976, in Cupertino, California.' },
+            { patterns: ['who created microsoft', 'who founded microsoft'], answer: 'Microsoft was founded by Bill Gates and Paul Allen on April 4, 1975, in Albuquerque, New Mexico.' },
+            { patterns: ['who created facebook', 'who founded facebook', 'who created meta'], answer: 'Facebook (now Meta Platforms, Inc.) was founded by Mark Zuckerberg along with Eduardo Saverin, Andrew McCollum, Dustin Moskovitz, and Chris Hughes on February 4, 2004, at Harvard University.' },
+            { patterns: ['who created chatgpt', 'who made chatgpt'], answer: 'ChatGPT was created by OpenAI, an AI research company. It was launched on November 30, 2022. OpenAI was founded in 2015 by Sam Altman, Elon Musk, and others.' },
+        ];
+
+        // Search knowledge base for matching answer
+        function searchKnowledgeBase(query) {
+            const lowerQuery = query.toLowerCase().trim();
+            
+            // Try exact pattern matching first
+            for (const entry of knowledgeBase) {
+                for (const pattern of entry.patterns) {
+                    if (lowerQuery.includes(pattern)) {
+                        return entry.answer;
+                    }
+                }
+            }
+            
+            // Try keyword-based fuzzy matching for sports queries
+            const words = lowerQuery.split(/\s+/);
+            for (const entry of knowledgeBase) {
+                for (const pattern of entry.patterns) {
+                    const patternWords = pattern.split(/\s+/);
+                    const matchCount = patternWords.filter(pw => words.some(w => w.includes(pw) || pw.includes(w))).length;
+                    // If most of the pattern words match, consider it a hit
+                    if (matchCount >= patternWords.length * 0.75 && patternWords.length >= 2) {
+                        return entry.answer;
+                    }
+                }
+            }
+            
+            return null; // No match found
+        }
 
         // Load search history from localStorage
         function loadSearchHistory() {
@@ -1111,22 +1227,30 @@
                 const detectedLang = detectLanguage(input);
                 const langName = getLanguageName(detectedLang);
                 
-                // Modify prompt to encourage response in detected language
-                let prompt = input;
-                if (detectedLang !== 'en') {
-                    prompt = `Please respond in ${langName}. ${input}`;
-                }
+                // Check knowledge base first for accurate factual answers
+                const kbAnswer = searchKnowledgeBase(input);
+                let responseText;
                 
-                const output = await generator(prompt, {
-                    max_new_tokens: 256,
-                    temperature: 0.7,
-                    do_sample: true
-                });
-                
-                // Clean up the response (remove the language instruction if present)
-                let responseText = output[0].generated_text;
-                if (detectedLang !== 'en' && responseText.startsWith(`Please respond in ${langName}.`)) {
-                    responseText = responseText.replace(`Please respond in ${langName}.`, '').trim();
+                if (kbAnswer) {
+                    // Use knowledge base answer (accurate factual data)
+                    responseText = kbAnswer;
+                } else {
+                    // Fall back to AI model
+                    let prompt = input;
+                    if (detectedLang !== 'en') {
+                        prompt = `Please respond in ${langName}. ${input}`;
+                    }
+                    
+                    const output = await generator(prompt, {
+                        max_new_tokens: 256,
+                        temperature: 0.3,
+                        do_sample: true
+                    });
+                    
+                    responseText = output[0].generated_text;
+                    if (detectedLang !== 'en' && responseText.startsWith(`Please respond in ${langName}.`)) {
+                        responseText = responseText.replace(`Please respond in ${langName}.`, '').trim();
+                    }
                 }
                 
                 // Typewriter effect
