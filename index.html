@@ -729,29 +729,151 @@
         function searchKnowledgeBase(query) {
             const lowerQuery = query.toLowerCase().trim();
             
-            // Try exact pattern matching first
+            // Step 1: Remove filler/stop words to normalize the query
+            // "who won the cricket world cup in 2011?" → "cricket world cup 2011"
+            const stopWords = new Set([
+                'who', 'what', 'when', 'where', 'which', 'how', 'is', 'are', 'was', 'were',
+                'won', 'win', 'winner', 'did', 'does', 'do', 'has', 'have', 'had',
+                'the', 'a', 'an', 'in', 'on', 'at', 'of', 'for', 'to', 'and', 'or',
+                'tell', 'me', 'about', 'please', 'can', 'you', 'i', 'want', 'know',
+                'give', 'info', 'information', 'details', 'explain'
+            ]);
+            const normalizedQuery = lowerQuery.replace(/[?!.,]/g, '').split(/\s+/)
+                .filter(w => !stopWords.has(w)).join(' ');
+            
+            // Step 2: Try exact pattern matching on BOTH original and normalized query
             for (const entry of knowledgeBase) {
                 for (const pattern of entry.patterns) {
-                    if (lowerQuery.includes(pattern)) {
+                    if (lowerQuery.includes(pattern) || normalizedQuery.includes(pattern)) {
                         return entry.answer;
                     }
                 }
             }
             
-            // Try keyword-based fuzzy matching for sports queries
-            const words = lowerQuery.split(/\s+/);
+            // Step 3: Smart keyword matching — find the BEST match, not first match
+            const queryWords = normalizedQuery.split(/\s+/);
+            let bestMatch = null;
+            let bestScore = 0;
+            
             for (const entry of knowledgeBase) {
                 for (const pattern of entry.patterns) {
                     const patternWords = pattern.split(/\s+/);
-                    const matchCount = patternWords.filter(pw => words.some(w => w.includes(pw) || pw.includes(w))).length;
-                    // If most of the pattern words match, consider it a hit
-                    if (matchCount >= patternWords.length * 0.75 && patternWords.length >= 2) {
-                        return entry.answer;
+                    
+                    // Count exact word matches only (no substring matching)
+                    const matchedPatternWords = patternWords.filter(pw => queryWords.includes(pw));
+                    const matchCount = matchedPatternWords.length;
+                    const matchRatio = matchCount / patternWords.length;
+                    
+                    // Require ALL pattern words to be present (100% match)
+                    // OR for longer patterns (4+ words), allow 1 word missing
+                    const threshold = patternWords.length >= 4 ? 0.75 : 1.0;
+                    
+                    if (matchRatio >= threshold && patternWords.length >= 2) {
+                        // Score: prioritize higher match count AND higher ratio
+                        const score = matchCount + matchRatio;
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestMatch = entry.answer;
+                        }
                     }
                 }
             }
             
-            return null; // No match found
+            return bestMatch; // Returns best match or null
+        }
+
+        // ========== MATH EVALUATOR ==========
+        // Handles arithmetic and comparison queries that the AI model gets wrong
+        function tryMathAnswer(query) {
+            const cleaned = query.trim().toLowerCase().replace(/[?]/g, '');
+
+            // --- Comparison queries: "40 vs 35", "compare 40 and 35", "which is greater 40 or 35" ---
+            let compMatch = cleaned.match(
+                /(?:what is\s+)?(\-?\d+(?:\.\d+)?)\s*(?:vs\.?|versus|compared to|compare(?:d)?\s+(?:to|with)?)\s*(\-?\d+(?:\.\d+)?)/
+            );
+            if (!compMatch) {
+                compMatch = cleaned.match(
+                    /(?:compare|which is (?:greater|bigger|larger|smaller|less))\s+(\-?\d+(?:\.\d+)?)\s+(?:and|or|to|with)\s+(\-?\d+(?:\.\d+)?)/
+                );
+            }
+            if (!compMatch) {
+                // "what is 40 vs 35" style (already handled above) or "40 versus 35"
+                compMatch = cleaned.match(/(\-?\d+(?:\.\d+)?)\s+(?:vs\.?|versus)\s+(\-?\d+(?:\.\d+)?)/);
+            }
+            if (compMatch) {
+                const a = parseFloat(compMatch[1]);
+                const b = parseFloat(compMatch[2]);
+                if (a > b) return `${a} is greater than ${b} (difference: ${(a - b)}).`;
+                if (a < b) return `${b} is greater than ${a} (difference: ${(b - a)}).`;
+                return `${a} and ${b} are equal.`;
+            }
+
+            // --- Direct arithmetic expressions: "45+35", "what is 45 + 35", "calculate 100/4" ---
+            // Strip natural-language wrappers
+            let expr = cleaned
+                .replace(/^(what is|what's|whats|calculate|compute|solve|evaluate|find|tell me)\s+/i, '')
+                .replace(/^(the\s+)?(result|answer|value|sum|difference|product|quotient)\s*(of|for)?\s*/i, '')
+                .replace(/\s+equals.*$/i, '')
+                .trim();
+
+            // Convert common word operators
+            expr = expr
+                .replace(/\bplus\b/g, '+')
+                .replace(/\bminus\b/g, '-')
+                .replace(/\btimes\b/g, '*')
+                .replace(/\bmultiplied\s+by\b/g, '*')
+                .replace(/\bdivided\s+by\b/g, '/')
+                .replace(/\bover\b/g, '/')
+                .replace(/\bmod\b/g, '%')
+                .replace(/\bmodulo\b/g, '%')
+                .replace(/\bto\s+the\s+power\s+of\b/g, '**')
+                .replace(/\braised\s+to\b/g, '**')
+                .replace(/\bpower\b/g, '**')
+                .replace(/\bsquared\b/g, '**2')
+                .replace(/\bcubed\b/g, '**3')
+                .replace(/\^/g, '**')
+                .replace(/×/g, '*')
+                .replace(/÷/g, '/')
+                .replace(/,/g, '') // remove thousands separators
+                .trim();
+
+            // Check if expression looks like a valid math expression (digits + operators + parens)
+            if (/^[\d\s\+\-\*\/\%\.\(\)\*]+$/.test(expr) && /\d/.test(expr) && /[\+\-\*\/\%\^]/.test(expr)) {
+                try {
+                    // Use Function constructor for safe math evaluation (no access to DOM/globals)
+                    const result = new Function(`"use strict"; return (${expr});`)();
+                    if (typeof result === 'number' && isFinite(result)) {
+                        // Format nicely: show original expression in readable form
+                        const displayExpr = expr.replace(/\*\*/g, '^').replace(/\*/g, ' × ').replace(/\//g, ' ÷ ');
+                        // Round to avoid floating point weirdness (e.g. 0.1+0.2 = 0.30000000000000004)
+                        const displayResult = Number.isInteger(result) ? result : parseFloat(result.toPrecision(12));
+                        return `The answer is ${displayResult}.`;
+                    }
+                } catch(e) {
+                    // Not a valid expression, fall through
+                }
+            }
+
+            // --- Percentage queries: "what is 20% of 150" ---
+            const pctMatch = cleaned.match(/(\d+(?:\.\d+)?)\s*%\s*(?:of)\s*(\d+(?:\.\d+)?)/);
+            if (pctMatch) {
+                const pct = parseFloat(pctMatch[1]);
+                const base = parseFloat(pctMatch[2]);
+                const result = (pct / 100) * base;
+                const displayResult = Number.isInteger(result) ? result : parseFloat(result.toPrecision(12));
+                return `${pct}% of ${base} is ${displayResult}.`;
+            }
+
+            // --- Square root: "square root of 144", "sqrt 144" ---
+            const sqrtMatch = cleaned.match(/(?:square\s*root\s*(?:of)?|sqrt)\s*(\d+(?:\.\d+)?)/);
+            if (sqrtMatch) {
+                const n = parseFloat(sqrtMatch[1]);
+                const result = Math.sqrt(n);
+                const displayResult = Number.isInteger(result) ? result : parseFloat(result.toPrecision(12));
+                return `The square root of ${n} is ${displayResult}.`;
+            }
+
+            return null; // Not a math query
         }
 
         // Load search history from localStorage
@@ -1229,11 +1351,16 @@
                 
                 // Check knowledge base first for accurate factual answers
                 const kbAnswer = searchKnowledgeBase(input);
+                // Check math evaluator for arithmetic/comparison queries
+                const mathAnswer = tryMathAnswer(input);
                 let responseText;
                 
                 if (kbAnswer) {
                     // Use knowledge base answer (accurate factual data)
                     responseText = kbAnswer;
+                } else if (mathAnswer) {
+                    // Use math evaluator answer (accurate arithmetic)
+                    responseText = mathAnswer;
                 } else {
                     // Fall back to AI model
                     let prompt = input;
